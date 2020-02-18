@@ -1,7 +1,6 @@
 import ast
 import os.path
 import warnings
-
 import dj_database_url
 import dj_email_url
 import sentry_sdk
@@ -10,6 +9,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django_prices.utils.formatting import get_currency_fraction
 from sentry_sdk.integrations.django import DjangoIntegration
 
+from .domain_utils import fetch_credentials
 
 def get_list(text):
     return [item.strip() for item in text.split(",")]
@@ -24,8 +24,7 @@ def get_bool_from_env(name, default_value):
             raise ValueError("{} is an invalid value for {}".format(value, name)) from e
     return default_value
 
-
-DEBUG = get_bool_from_env("DEBUG", True)
+DEBUG = os.environ.get("DEBUG", True)
 
 SITE_ID = 1
 
@@ -47,12 +46,7 @@ ALLOWED_CLIENT_HOSTS = get_list(
 
 INTERNAL_IPS = get_list(os.environ.get("INTERNAL_IPS", "127.0.0.1"))
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default="postgres://saleor:saleor@localhost:5432/saleor", conn_max_age=600
-    )
-}
-
+DATABASES = {}
 
 TIME_ZONE = "America/Chicago"
 LANGUAGE_CODE = "en"
@@ -131,7 +125,7 @@ EMAIL_USE_SSL = email_config["EMAIL_USE_SSL"]
 
 # If enabled, make sure you have set proper storefront address in ALLOWED_CLIENT_HOSTS.
 ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL = get_bool_from_env(
-    "ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL", True
+    "ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL", False
 )
 
 ENABLE_SSL = get_bool_from_env("ENABLE_SSL", False)
@@ -186,6 +180,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "threadlocals.middleware.ThreadLocalMiddleware",
     "saleor.core.middleware.discounts",
     "saleor.core.middleware.google_analytics",
     "saleor.core.middleware.country",
@@ -558,3 +553,6 @@ if (
         "Make sure you've added storefront address to ALLOWED_CLIENT_HOSTS "
         "if ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL is enabled."
     )
+
+DOMAIN = {}
+DATABASE_ROUTERS = ["saleor.core.db.router.DatabaseRouter"]
