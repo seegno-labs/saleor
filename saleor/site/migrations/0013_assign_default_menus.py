@@ -11,6 +11,7 @@ def assign_default_menus(apps, schema_editor):
         name=settings.DEFAULT_MENUS["bottom_menu_name"]
     )[0]
     Site = apps.get_model("sites", "Site")
+    Site.objects.clear_cache()
     site = Site.objects.get_current()
     site_settings = site.settings
     site_settings.top_menu = top_menu
