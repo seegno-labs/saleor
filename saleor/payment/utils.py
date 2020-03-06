@@ -5,9 +5,9 @@ from typing import Dict
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction
 
 from ..checkout.models import Checkout
+from ..domain_utils import transaction_domain_atomic
 from ..order.actions import handle_fully_paid_order
 from ..order.models import Order
 from . import ChargeStatus, GatewayError, PaymentError, TransactionKind
@@ -199,7 +199,7 @@ def validate_gateway_response(response: GatewayResponse):
         raise GatewayError("Gateway response needs to be json serializable")
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def gateway_postprocess(transaction, payment):
     if not transaction.is_success:
         return
