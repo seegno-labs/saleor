@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING, List, Union
 from urllib.parse import urlencode
 
 from django.conf import settings
-from django.db import transaction
 
 from ...core.taxes import TaxedMoney, zero_taxed_money
+from ...domain_utils import transaction_domain_atomic
 from ..tasks import update_products_minimal_variant_prices_task
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ def calculate_revenue_for_variant(
     return revenue
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def delete_categories(categories_ids: List[str]):
     """Delete categories and perform all necessary actions.
 
