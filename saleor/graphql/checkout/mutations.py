@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple
 import graphene
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import transaction
 from django.db.models import Prefetch
 from graphql_jwt.exceptions import PermissionDenied
 
@@ -30,6 +29,7 @@ from ...core.permissions import OrderPermissions
 from ...core.taxes import TaxError
 from ...core.utils.url import validate_storefront_url
 from ...discount import models as voucher_model
+from ...domain_utils import transaction_domain_atomic
 from ...payment import PaymentError, gateway, models as payment_models
 from ...payment.interface import AddressData
 from ...payment.utils import store_customer_id
@@ -259,7 +259,7 @@ class CheckoutCreate(ModelMutation, I18nMixin):
         instance.save(update_fields=updated_fields)
 
     @classmethod
-    @transaction.atomic()
+    @transaction_domain_atomic
     def save(cls, info, instance: models.Checkout, cleaned_input):
         # Create the checkout object
         instance.save()
@@ -488,6 +488,7 @@ class CheckoutShippingAddressUpdate(BaseMutation, I18nMixin):
         error_type_field = "checkout_errors"
 
     @classmethod
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, checkout_id, shipping_address):
         pk = from_global_id_strict_type(checkout_id, Checkout, field="checkout_id")
 
@@ -521,9 +522,8 @@ class CheckoutShippingAddressUpdate(BaseMutation, I18nMixin):
 
         update_checkout_shipping_method_if_invalid(checkout, info.context.discounts)
 
-        with transaction.atomic():
-            shipping_address.save()
-            change_shipping_address_in_checkout(checkout, shipping_address)
+        shipping_address.save()
+        change_shipping_address_in_checkout(checkout, shipping_address)
         recalculate_checkout_discount(checkout, info.context.discounts)
 
         return CheckoutShippingAddressUpdate(checkout=checkout)
@@ -544,6 +544,7 @@ class CheckoutBillingAddressUpdate(CheckoutShippingAddressUpdate):
         error_type_field = "checkout_errors"
 
     @classmethod
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, checkout_id, billing_address):
         checkout = cls.get_node_or_error(
             info, checkout_id, only_type=Checkout, field="checkout_id"
@@ -552,9 +553,8 @@ class CheckoutBillingAddressUpdate(CheckoutShippingAddressUpdate):
         billing_address = cls.validate_address(
             billing_address, instance=checkout.billing_address, info=info
         )
-        with transaction.atomic():
-            billing_address.save()
-            change_billing_address_in_checkout(checkout, billing_address)
+        billing_address.save()
+        change_billing_address_in_checkout(checkout, billing_address)
         return CheckoutBillingAddressUpdate(checkout=checkout)
 
 
@@ -693,6 +693,7 @@ class CheckoutComplete(BaseMutation):
         error_type_field = "checkout_errors"
 
     @classmethod
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, checkout_id, store_source, **data):
         checkout = cls.get_node_or_error(
             info,
@@ -717,27 +718,26 @@ class CheckoutComplete(BaseMutation):
 
         payment = checkout.get_last_active_payment()
 
-        with transaction.atomic():
-            try:
-                order_data = prepare_order_data(
-                    checkout=checkout,
-                    tracking_code=analytics.get_client_id(info.context),
-                    discounts=discounts,
-                )
-            except InsufficientStock as e:
-                raise ValidationError(
-                    f"Insufficient product stock: {e.item}", code=e.code
-                )
-            except voucher_model.NotApplicable:
-                raise ValidationError(
-                    "Voucher not applicable",
-                    code=CheckoutErrorCode.VOUCHER_NOT_APPLICABLE,
-                )
-            except TaxError as tax_error:
-                return ValidationError(
-                    "Unable to calculate taxes - %s" % str(tax_error),
-                    code=CheckoutErrorCode.TAX_ERROR,
-                )
+        try:
+            order_data = prepare_order_data(
+                checkout=checkout,
+                tracking_code=analytics.get_client_id(info.context),
+                discounts=discounts,
+            )
+        except InsufficientStock as e:
+            raise ValidationError(
+                f"Insufficient product stock: {e.item}", code=e.code
+            )
+        except voucher_model.NotApplicable:
+            raise ValidationError(
+                "Voucher not applicable",
+                code=CheckoutErrorCode.VOUCHER_NOT_APPLICABLE,
+            )
+        except TaxError as tax_error:
+            return ValidationError(
+                "Unable to calculate taxes - %s" % str(tax_error),
+                code=CheckoutErrorCode.TAX_ERROR,
+            )
 
         billing_address = order_data["billing_address"]
         shipping_address = order_data.get("shipping_address", None)
