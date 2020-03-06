@@ -1,14 +1,12 @@
 from typing import TYPE_CHECKING
-
-from django.db import transaction
-
+from ..domain_utils import transaction_domain_atomic
 from .models import Stock
 
 if TYPE_CHECKING:
     from ..product.models import ProductVariant
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def allocate_stock(
     variant: "ProductVariant", country_code: str, quantity: int, commit: bool = True
 ) -> Stock:
@@ -19,7 +17,7 @@ def allocate_stock(
     return stock
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def deallocate_stock(
     variant: "ProductVariant", country_code: str, quantity: int, commit: bool = True
 ) -> Stock:
@@ -30,7 +28,7 @@ def deallocate_stock(
     return stock
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def increase_stock(
     variant: "ProductVariant",
     country_code: str,
@@ -45,7 +43,7 @@ def increase_stock(
     return stock
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def decrease_stock(
     variant: "ProductVariant", country_code: str, quantity: int, commit: bool = True
 ) -> Stock:
@@ -56,7 +54,7 @@ def decrease_stock(
     return stock
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def set_stock_quantity(
     variant: "ProductVariant", country_code: str, quantity: int, commit: bool = True
 ) -> Stock:
