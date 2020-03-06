@@ -26,6 +26,7 @@ from ..mutations.products import (
 from ..types import ProductVariant
 from ..utils import get_used_variants_attribute_values
 
+from ....domain_utils import transaction_domain_atomic
 
 class CategoryBulkDelete(ModelBulkDeleteMutation):
     class Arguments:
@@ -238,7 +239,7 @@ class ProductVariantBulkCreate(BaseMutation):
         return cleaned_inputs
 
     @classmethod
-    @transaction.atomic
+    @transaction_domain_atomic
     def save_variants(cls, info, instances, cleaned_inputs):
         assert len(instances) == len(
             cleaned_inputs
