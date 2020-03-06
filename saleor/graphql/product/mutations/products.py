@@ -3,7 +3,6 @@ from typing import Iterable, List, Tuple, Union
 
 import graphene
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.template.defaultfilters import slugify
 from graphene.types import InputObjectType
@@ -61,6 +60,7 @@ from ..utils import (
     validate_attribute_input_for_variant,
 )
 
+from ....domain_utils import transaction_domain_atomic
 
 class CategoryInput(graphene.InputObjectType):
     description = graphene.String(description="Category description (HTML/text).")
@@ -285,6 +285,7 @@ class CollectionReorderProducts(BaseMutation):
         )
 
     @classmethod
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, collection_id, moves):
         pk = from_global_id_strict_type(
             collection_id, only_type=Collection, field="collection_id"
@@ -327,8 +328,7 @@ class CollectionReorderProducts(BaseMutation):
                 )
             operations[m2m_info.pk] = move_info.sort_order
 
-        with transaction.atomic():
-            perform_reordering(m2m_related_field, operations)
+        perform_reordering(m2m_related_field, operations)
         return CollectionReorderProducts(collection=collection)
 
 
@@ -352,7 +352,7 @@ class CollectionAddProducts(BaseMutation):
         error_type_field = "product_errors"
 
     @classmethod
-    @transaction.atomic()
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, collection_id, products):
         collection = cls.get_node_or_error(
             info, collection_id, field="collection_id", only_type=Collection
@@ -898,7 +898,7 @@ class ProductCreate(ModelMutation):
         return super().get_instance(info, **data)
 
     @classmethod
-    @transaction.atomic
+    @transaction_domain_atomic
     def save(cls, info, instance, cleaned_input):
         instance.save()
         if not instance.product_type.has_variants:
@@ -963,7 +963,7 @@ class ProductUpdate(ProductCreate):
             )
 
     @classmethod
-    @transaction.atomic
+    @transaction_domain_atomic
     def save(cls, info, instance, cleaned_input):
         instance.save()
         if not instance.product_type.has_variants:
@@ -1179,7 +1179,7 @@ class ProductVariantCreate(ModelMutation):
         return super().get_instance(info, **data)
 
     @classmethod
-    @transaction.atomic()
+    @transaction_domain_atomic
     def save(cls, info, instance, cleaned_input):
         instance.save()
         # Recalculate the "minimal variant price" for the parent product
