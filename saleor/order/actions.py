@@ -1,10 +1,10 @@
 import logging
+
 from decimal import Decimal
 from typing import TYPE_CHECKING, List
 
-from django.db import transaction
-
 from ..core import analytics
+from ..domain_utils import transaction_domain_atomic
 from ..extensions.manager import get_extensions_manager
 from ..payment import ChargeStatus, CustomPaymentChoices, PaymentError
 from ..warehouse.management import decrease_stock
@@ -120,8 +120,8 @@ def order_fulfilled(
     if order.status == OrderStatus.FULFILLED:
         manager.order_fulfilled(order)
 
-    if notify_customer:
-        send_fulfillment_confirmation_to_customer(order, fulfillment, user)
+    # if notify_customer:
+    #     send_fulfillment_confirmation_to_customer(order, fulfillment, user)
 
 
 def order_shipping_updated(order: "Order"):
@@ -171,7 +171,7 @@ def cancel_fulfillment(fulfillment: "Fulfillment", user: "User", restock: bool):
     get_extensions_manager().order_updated(fulfillment.order)
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def mark_order_as_paid(order: "Order", request_user: "User"):
     """Mark order as paid.
 
@@ -238,7 +238,7 @@ def automatically_fulfill_digital_lines(order: "Order"):
             fulfillment=fulfillment, order_line=line, quantity=quantity
         )
         fulfill_order_line(order_line=line, quantity=quantity)
-    emails.send_fulfillment_confirmation_to_customer(
-        order, fulfillment, user=order.user
-    )
+    # emails.send_fulfillment_confirmation_to_customer(
+    #     order, fulfillment, user=order.user
+    # )
     update_order_status(order)
