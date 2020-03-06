@@ -4,6 +4,8 @@ import requests
 from requests.exceptions import RequestException
 
 from ....celeryconf import app
+from ....domain_task import DomainTask
+from ....domain_utils import setup_celery_connection
 from ....webhook.event_types import WebhookEventType
 from ....webhook.models import Webhook
 from . import create_webhook_headers
@@ -13,10 +15,15 @@ logger = logging.getLogger(__name__)
 WEBHOOK_TIMEOUT = 10
 
 
-@app.task
-def trigger_webhooks_for_event(event_type, data):
+@app.task(base=DomainTask)
+def trigger_webhooks_for_event(event_type, data, **kwargs):
+    domain = kwargs.get('domain')
+
+    setup_celery_connection(domain)
+
     permissions = {}
     required_permission = WebhookEventType.PERMISSIONS[event_type].value
+
     if required_permission:
         app_label, codename = required_permission.split(".")
         permissions["service_account__permissions__content_type__app_label"] = app_label
@@ -39,11 +46,16 @@ def trigger_webhooks_for_event(event_type, data):
 
 
 @app.task(
+    base=DomainTask,
     autoretry_for=(RequestException,),
     retry_backoff=60,
     retry_kwargs={"max_retries": 15},
 )
-def send_webhook_request(webhook_id, target_url, secret, event_type, data):
+def send_webhook_request(webhook_id, target_url, secret, event_type, data, **kwargs):
+    domain = kwargs.get('domain')
+
+    setup_celery_connection(domain)
+
     headers = create_webhook_headers(event_type, data, secret)
     response = requests.post(
         target_url, data=data, headers=headers, timeout=WEBHOOK_TIMEOUT
