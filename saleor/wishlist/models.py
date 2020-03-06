@@ -1,10 +1,10 @@
 import uuid
 
-from django.db import models, transaction
+from django.db import models
 
 from ..account.models import User
+from ..domain_utils import transaction_domain_atomic
 from ..product.models import Product, ProductVariant
-
 
 class Wishlist(models.Model):
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -47,7 +47,7 @@ class Wishlist(models.Model):
 
 
 class WishlistItemQuerySet(models.QuerySet):
-    @transaction.atomic()
+    @transaction_domain_atomic
     def move_items_between_wishlists(self, src_wishlist, dst_wishlist):
         dst_wishlist_map = {}
         for dst_item in dst_wishlist.items.all():
