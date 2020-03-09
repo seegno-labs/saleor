@@ -6,6 +6,8 @@ from django.db import transaction
 from django.db.models import F, QuerySet
 from django.utils.functional import cached_property
 
+from ....domain_utils import get_domain
+
 __all__ = ["perform_reordering"]
 
 
@@ -168,7 +170,7 @@ def perform_reordering(qs: QuerySet, operations: Dict[int, int], field: str = "m
     :raises RuntimeError: If the bulk operation is not run inside an atomic transaction.
     """
 
-    if not transaction.get_connection().in_atomic_block:
+    if not transaction.get_connection(using=get_domain()).in_atomic_block:
         raise RuntimeError("Needs to be run inside an atomic transaction")
 
     Reordering(qs, operations, field).run()
