@@ -1,7 +1,6 @@
 from functools import wraps
 
 from django.conf import settings
-from django.db import transaction
 from django.utils import timezone
 from prices import Money, TaxedMoney
 
@@ -9,6 +8,7 @@ from ..core.taxes import zero_money
 from ..core.weight import zero_weight
 from ..discount.models import NotApplicable, Voucher, VoucherType
 from ..discount.utils import get_products_voucher_discount, validate_voucher_in_order
+from ..domain_utils import transaction_domain_atomic
 from ..extensions.manager import get_extensions_manager
 from ..order import OrderStatus
 from ..order.models import Order, OrderLine
@@ -17,7 +17,6 @@ from ..shipping.models import ShippingMethod
 from ..warehouse.availability import check_stock_quantity
 from ..warehouse.management import allocate_stock, deallocate_stock, increase_stock
 from . import events
-
 
 def get_order_country(order: Order) -> str:
     """Return country to which order will be shipped."""
@@ -161,7 +160,7 @@ def update_order_status(order):
         order.save(update_fields=["status"])
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def add_variant_to_order(
     order,
     variant,

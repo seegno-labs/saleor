@@ -4,7 +4,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.db.models import Max, Min, Sum
 from django.utils import timezone
 from django.utils.encoding import smart_text
@@ -44,6 +43,8 @@ from ..warehouse.availability import check_stock_quantity
 from ..warehouse.management import allocate_stock
 from . import AddressType
 from .models import Checkout, CheckoutLine
+
+from ..domain_utils import transaction_domain_atomic
 
 if TYPE_CHECKING:
     from ..discount.types import DiscountsListType
@@ -701,7 +702,7 @@ def abort_order_data(order_data: dict):
             remove_voucher_usage_by_customer(voucher, order_data["user_email"])
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def create_order(
     *, checkout: Checkout, order_data: dict, user: User, redirect_url: str
 ) -> Order:
@@ -749,8 +750,8 @@ def create_order(
     order_created(order=order, user=user)
 
     # Send the order confirmation email
-    send_order_confirmation.delay(order.pk, redirect_url, user.pk)
-    send_staff_order_confirmation.delay(order.pk, redirect_url)
+    # send_order_confirmation.delay(order.pk, redirect_url, user.pk)
+    # send_staff_order_confirmation.delay(order.pk, redirect_url)
 
     return order
 

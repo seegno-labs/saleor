@@ -1,7 +1,5 @@
-from django.db import transaction
-
 from ..menu.models import Menu
-
+from ..domain_utils import transaction_domain_atomic
 
 def get_menu_item_as_dict(menu_item):
     data = {}
@@ -51,7 +49,7 @@ def get_menu_as_json(menu):
     return menu_data
 
 
-@transaction.atomic
+@transaction_domain_atomic
 def update_menus(menus_pk):
     menus = Menu.objects.filter(pk__in=menus_pk)
     for menu in menus:

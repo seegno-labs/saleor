@@ -10,7 +10,16 @@ services:
     restart: unless-stopped
     networks:
       - saleor-backend-tier
-    env_file: common.env
+    environment:
+      - SAAS_MANAGER_HOST=$SAAS_MANAGER_HOST
+      - USER_MANAGER_HOST=$USER_MANAGER_HOST
+      - DEFAULT_FROM_EMAIL=noreply@example.com
+      - OPENEXCHANGERATES_API_KEY
+      - CELERY_BROKER_URL=$CELERY_BROKER_URL
+      - SECRET_KEY=$SECRET_KEY
+      - DEBUG=False
+      - JWT_VERIFY_EXPIRATION=True
+      - VATLAYER_ACCESS_KEY
     depends_on:
       - db
       - redis
@@ -25,7 +34,7 @@ services:
     environment:
       - POSTGRES_USER=saleor
       - POSTGRES_PASSWORD=saleor
-
+  
   redis:
     image: library/redis:5.0-alpine
     restart: unless-stopped

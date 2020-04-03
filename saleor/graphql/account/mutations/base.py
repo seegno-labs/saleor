@@ -2,7 +2,6 @@ import graphene
 from django.contrib.auth import password_validation
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import transaction
 from graphql_jwt.exceptions import PermissionDenied
 
 from ....account import events as account_events, models
@@ -25,6 +24,7 @@ from ...core.mutations import (
     validation_error_to_error_type,
 )
 from ...core.types.common import AccountError
+from ....domain_utils import transaction_domain_atomic
 
 BILLING_ADDRESS_FIELD = "default_billing_address"
 SHIPPING_ADDRESS_FIELD = "default_shipping_address"
@@ -398,7 +398,7 @@ class BaseCustomerCreate(ModelMutation, I18nMixin):
         return cleaned_input
 
     @classmethod
-    @transaction.atomic
+    @transaction_domain_atomic
     def save(cls, info, instance, cleaned_input):
         # FIXME: save address in user.addresses as well
         default_shipping_address = cleaned_input.get(SHIPPING_ADDRESS_FIELD)
@@ -417,6 +417,13 @@ class BaseCustomerCreate(ModelMutation, I18nMixin):
             instance.default_billing_address = default_billing_address
 
         is_creation = instance.pk is None
+
+        # set default password to users
+        # before saving it, so we don't
+        # have to handle emails
+        if is_creation:
+            instance.set_password("admin")
+
         super().save(info, instance, cleaned_input)
 
         # The instance is a new object in db, create an event
@@ -424,10 +431,10 @@ class BaseCustomerCreate(ModelMutation, I18nMixin):
             info.context.extensions.customer_created(customer=instance)
             account_events.customer_account_created_event(user=instance)
 
-        if cleaned_input.get("redirect_url"):
-            send_set_password_email_with_url(
-                cleaned_input.get("redirect_url"), instance
-            )
+        # if cleaned_input.get("redirect_url"):
+        #     send_set_password_email_with_url(
+        #         cleaned_input.get("redirect_url"), instance
+        #     )
 
 
 class UserUpdateMeta(UpdateMetaBaseMutation):

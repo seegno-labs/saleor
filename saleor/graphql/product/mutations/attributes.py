@@ -2,7 +2,6 @@ from typing import List
 
 import graphene
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import transaction
 from django.db.models import Q
 from django.template.defaultfilters import slugify
 
@@ -27,6 +26,7 @@ from ..descriptions import AttributeDescriptions, AttributeValueDescriptions
 from ..enums import AttributeInputTypeEnum, AttributeTypeEnum
 from ..types import Attribute, AttributeValue
 
+from ....domain_utils import transaction_domain_atomic
 
 class AttributeValueCreateInput(graphene.InputObjectType):
     name = graphene.String(required=True, description=AttributeValueDescriptions.NAME)
@@ -403,7 +403,7 @@ class AttributeAssign(BaseMutation):
             model.objects.create(product_type=product_type, attribute_id=pk)
 
     @classmethod
-    @transaction.atomic()
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, **data):
         product_type_id: str = data["product_type_id"]
         operations: List[AttributeAssignInput] = data["operations"]
@@ -679,6 +679,7 @@ class ProductTypeReorderAttributes(BaseMutation):
         )
 
     @classmethod
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, product_type_id, type, moves):
         pk = from_global_id_strict_type(
             product_type_id, only_type=ProductType, field="product_type_id"
@@ -725,8 +726,7 @@ class ProductTypeReorderAttributes(BaseMutation):
                 )
             operations[m2m_info.pk] = move_info.sort_order
 
-        with transaction.atomic():
-            perform_reordering(attributes_m2m, operations)
+        perform_reordering(attributes_m2m, operations)
         return ProductTypeReorderAttributes(product_type=product_type)
 
 
@@ -752,6 +752,7 @@ class AttributeReorderValues(BaseMutation):
         )
 
     @classmethod
+    @transaction_domain_atomic
     def perform_mutation(cls, _root, info, attribute_id, moves):
         pk = from_global_id_strict_type(
             attribute_id, only_type=Attribute, field="attribute_id"
@@ -791,7 +792,6 @@ class AttributeReorderValues(BaseMutation):
                 )
             operations[m2m_info.pk] = move_info.sort_order
 
-        with transaction.atomic():
-            perform_reordering(values_m2m, operations)
+        perform_reordering(values_m2m, operations)
         attribute.refresh_from_db(fields=["values"])
         return AttributeReorderValues(attribute=attribute)
