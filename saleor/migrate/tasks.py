@@ -12,6 +12,7 @@ from ..account.models import Address, User
 from ..celeryconf import app
 from ..domain_task import DomainTask
 from ..domain_utils import (
+    add_saleor_schema,
     update_ecommerce_id,
     update_migration_state,
     setup_celery_connection
@@ -106,4 +107,5 @@ def run_migrations(**kwargs):
     domain = kwargs.get('domain')
 
     setup_celery_connection(domain)
+    add_saleor_schema(domain)
     call_command("migrate", database=domain)
