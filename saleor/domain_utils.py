@@ -93,6 +93,6 @@ def transaction_domain_atomic(fn):
 def add_saleor_schema(domain):
     with connections[domain].cursor() as cursor:
         try:
-            cursor.execute('CREATE SCHEMA saleor IF NOT EXISTS')
+            cursor.execute('CREATE SCHEMA IF NOT EXISTS saleor')
         finally:
             cursor.close()
