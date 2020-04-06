@@ -89,3 +89,10 @@ def transaction_domain_atomic(fn):
             return fn(*args, **kwargs)
 
     return wrapper
+
+def add_saleor_schema(domain):
+    with connections[domain].cursor() as cursor:
+        try:
+            cursor.execute('CREATE SCHEMA saleor')
+        finally:
+            cursor.close()
