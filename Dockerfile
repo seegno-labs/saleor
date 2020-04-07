@@ -56,14 +56,13 @@ COPY --from=build-nodejs /app/saleor/static /app/saleor/static
 COPY --from=build-nodejs /app/templates /app/templates
 WORKDIR /app
 
-RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --no-input
-
 RUN mkdir -p /app/media /app/static \
   && chown -R saleor:saleor /app/
 
-EXPOSE 8000
 ENV PORT 8000
 ENV PYTHONUNBUFFERED 1
 ENV PROCESSES 4
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 CMD ["uwsgi", "--ini", "/app/saleor/wsgi/uwsgi.ini"]
