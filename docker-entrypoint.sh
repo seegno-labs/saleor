@@ -2,16 +2,14 @@
 
 python3 manage.py collectstatic --no-input
 
-echo "CONTAINER_JOB=$CONTAINER_JOB"
-
-if [ $CONTAINER_JOB == "SALEOR" ]
+if [ $CONTAINER_JOB == "saleor" ]
 then
-  echo "Running Saleor server..."
+  echo "Starting Saleor server..."
   python manage.py runserver 0.0.0.0:$PORT
-elif [ $CONTAINER_JOB == "CELERY" ]
+elif [ $CONTAINER_JOB == "celery" ]
 then
-  echo "Running celery..."
-  celery -A saleor worker --app=saleor.celeryconf:app --loglevel=info
+  echo "Starting Celery..."
+  celery -A saleor worker --app=saleor.celeryconf:app --loglevel=${CELERY_DEBUG:-info}
 fi
 
 exec "$@"
