@@ -11,6 +11,7 @@ from threadlocals.threadlocals import get_current_request
 
 saas_manager_host = os.environ.get('SAAS_MANAGER_HOST')
 user_manager_host = os.environ.get('USER_MANAGER_HOST')
+services_protocol = os.environ.get('SERVICES_PROTOCOL') or 'http'
 
 def get_domain():
     opts = sys.argv
@@ -25,7 +26,7 @@ def get_domain():
 def update_migration_state(domain=None, state=None):
     try:
         payload = {'ecommerceStatus': state}
-        url = f"{saas_manager_host}/domains/{domain}"
+        url = f"{services_protocol}://{saas_manager_host}/domains/{domain}"
         data = parse.urlencode(payload).encode()
         req = request.Request(url, data=data)
         req.get_method = lambda: "PATCH"
@@ -39,7 +40,7 @@ def update_migration_state(domain=None, state=None):
 def update_ecommerce_id(domain_id=None, user_id=None, saleor_id=None):
     try:
         payload = {'ecommerceId': saleor_id}
-        url = f"{user_manager_host}/users/{user_id}"
+        url = f"{services_protocol}://{user_manager_host}/users/{user_id}"
         data = parse.urlencode(payload).encode()
         headers = { "X-Domain-ID": domain_id }
         req = request.Request(url, headers=headers, data=data)
@@ -53,7 +54,7 @@ def update_ecommerce_id(domain_id=None, user_id=None, saleor_id=None):
 
 def fetch_credentials(domain=None):
     try:
-        url = f"{saas_manager_host}/domains/{domain}/database"
+        url = f"{services_protocol}://{saas_manager_host}/domains/{domain}/database"
         req = request.Request(url, data=None)
 
         with request.urlopen(req) as response:
