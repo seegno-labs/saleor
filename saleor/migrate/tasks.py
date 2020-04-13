@@ -62,41 +62,48 @@ def create_fake_address():
 
 
 def setup_warehouse():
-    shipping_zone_name = "Default"
-    shipping_zone = ShippingZone.objects.get_or_create(
-        name=shipping_zone_name,
-        countries=countries,
-        default=True
-    )[0]
+    warehouses = Warehouse.objects.all()
+    has_warehouse = warehouses.count() > 0
 
-    ShippingMethod.objects.create(
-        name="Default Method",
-        price=Money(0, settings.DEFAULT_CURRENCY),
-        shipping_zone=shipping_zone,
-        type=ShippingMethodType.WEIGHT_BASED,
-        minimum_order_price=Money(0, settings.DEFAULT_CURRENCY),
-        maximum_order_price_amount=None,
-        minimum_order_weight=0,
-        maximum_order_weight=None,
-    )
+    if not has_warehouse:
+        shipping_zone_name = "Default"
+        shipping_zone = ShippingZone.objects.get_or_create(
+            name=shipping_zone_name,
+            countries=countries,
+            default=True
+        )[0]
 
-    warehouse, _ = Warehouse.objects.update_or_create(
-        name=shipping_zone_name,
-        slug=slugify(shipping_zone_name),
-        company_name=fake.company(),
-        address=create_fake_address()
-    )
+        ShippingMethod.objects.create(
+            name="Default Method",
+            price=Money(0, settings.DEFAULT_CURRENCY),
+            shipping_zone=shipping_zone,
+            type=ShippingMethodType.WEIGHT_BASED,
+            minimum_order_price=Money(0, settings.DEFAULT_CURRENCY),
+            maximum_order_price_amount=None,
+            minimum_order_weight=0,
+            maximum_order_weight=None,
+        )
 
-    warehouse.shipping_zones.add(shipping_zone)
+        warehouse, _ = Warehouse.objects.update_or_create(
+            name=shipping_zone_name,
+            slug=slugify(shipping_zone_name),
+            company_name=fake.company(),
+            address=create_fake_address()
+        )
 
-@signals.task_postrun.connect
-def handle_post_migration(signal=None, sender=None, task_id=None, task=None, *args, **kwargs):
-    if task.name == "saleor.migrate.tasks.run_migrations":
-        users = kwargs.get('kwargs').get('users')
-        domain = kwargs.get('kwargs').get('domain')
+        warehouse.shipping_zones.add(shipping_zone)
+
+@signals.task_success.connect
+def handle_migrate_success(result, *args, **kwargs):
+    task = kwargs.get('sender').name
+
+    if task == 'saleor.migrate.tasks.run_migrations':
+        users = result.get('users')
+        domain = result.get('domain')
+
+        setup_warehouse()
 
         if len(users):
-            setup_warehouse()
             create_users(domain, users)
 
         update_migration_state(domain, "ready")
@@ -109,3 +116,8 @@ def run_migrations(**kwargs):
     setup_celery_connection(domain)
     add_saleor_schema(domain)
     call_command("migrate", database=domain)
+
+    return {
+        'domain': domain,
+        'users': users
+    }

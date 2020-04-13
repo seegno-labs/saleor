@@ -58,8 +58,10 @@ def fetch_credentials(domain=None):
         req = request.Request(url, data=None)
 
         with request.urlopen(req) as response:
-            credentials = response.read().decode('utf-8')
-            return json.loads(credentials)
+            res = response.read().decode('utf-8')
+            credentials = json.loads(res)
+
+            return credentials.get('data')
     except Exception as e:
         raise e
 
