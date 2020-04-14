@@ -78,7 +78,6 @@ def setup_celery_connection(domain):
     credentials = fetch_credentials(domain)
     connection_string = serialize_connection(credentials)
     connections.databases[domain] = dj_database_url.parse(connection_string)
-    connections.databases[domain]["OPTIONS"] = { "options": '-c search_path=saleor' }
     settings.DOMAIN["celery"] = domain
 
 def transaction_domain_atomic(fn):
