@@ -6,10 +6,11 @@ import dj_email_url
 import sentry_sdk
 from django.contrib.messages import constants as messages
 from django.core.exceptions import ImproperlyConfigured
+from django.db.backends.signals import connection_created
 from django_prices.utils.formatting import get_currency_fraction
 from sentry_sdk.integrations.django import DjangoIntegration
 
-from .domain_utils import fetch_credentials
+from .core.db.schema import set_search_path
 
 def get_list(text):
     return [item.strip() for item in text.split(",")]
@@ -556,3 +557,5 @@ if (
 
 DOMAIN = {}
 DATABASE_ROUTERS = ["saleor.core.db.router.DatabaseRouter"]
+
+connection_created.connect(set_search_path)

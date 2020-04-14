@@ -35,7 +35,6 @@ class DatabaseRouter:
 
         if db_conn is not None and domain is not None:
             connections.databases[domain] = dj_database_url.parse(db_conn)
-            connections.databases[domain]["OPTIONS"] = { "options": "-c search_path=saleor" }
 
         return domain
 
