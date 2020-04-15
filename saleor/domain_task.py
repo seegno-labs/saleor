@@ -1,5 +1,5 @@
 from celery import Task
-from .domain_utils import get_domain
+from .domain_utils import get_domain, fetch_currency
 
 class DomainTask(Task):
     abstract = True
@@ -17,4 +17,7 @@ class DomainTask(Task):
         return super(DomainTask, self).retry(args, kwargs, **rest)
 
     def _include_request_context(self, kwargs):
-        kwargs["domain"] = get_domain()
+        domain = get_domain()
+        currency = fetch_currency(domain)
+        kwargs["domain"] = domain
+        kwargs["currency"] = currency
