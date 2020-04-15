@@ -1,3 +1,62 @@
+## Slyk Saleor
+
+In order to adapt Saleor to our environment, we've had to make some significant changes, mainly due to our need for a multitenant and a multicurrency solution.
+
+The logic to handle requests to our services in defined on:
+
+* [domain_utils](https://github.com/seegno-labs/saleor/blob/develop/saleor/domain_utils.py)
+  * This file has functions that will interact with some Slyk services and handle overall tenancy functionality to be done through HTTP or through Celery task manager.
+* [domain_task](https://github.com/seegno-labs/saleor/blob/develop/saleor/domain_task.py)
+  * This task is supposed to be used on any Celery task as a base to be inherited with. It will persist the domain that the Celery task will have to use, since every task will be executed in a freshly generated environment.
+* [router](https://github.com/seegno-labs/saleor/blob/develop/saleor/core/db/router.py)
+  * This is the database router to make sure the models from the database use the correct tenant connection. This is attached to django on the settings.py
+* [schema](https://github.com/seegno-labs/saleor/blob/develop/saleor/core/db/schema.py)
+  * This is a simple function to attach our search_path on every connection to the database to enable the database to use the proper schema.
+* [migrate/tasks](https://github.com/seegno-labs/saleor/blob/develop/saleor/migrate/tasks.py)
+  * Task that will delegate the django migration to a celery task so it can be done asynchronously.
+* [migrate/views](https://github.com/seegno-labs/saleor/blob/develop/saleor/migrate/views.py)
+  * The migrate endpoint implementation.
+
+
+### File changes for multitenancy
+
+- [saleor/urls.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/urls.py)
+- [saleor/settings.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/settings.py)
+- [saleor/checkout/utils.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/checkout/utils.py)
+- [saleor/extensions/plugins/webhook/tasks.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/extensions/plugins/webhook/tasks.py)
+- [saleor/graphql/account/mutations/base.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/account/mutations/base.py)
+- [saleor/graphql/checkout/mutations.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/checkout/mutations.py)
+- [saleor/graphql/core/utils/reordering.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/core/utils/reordering.py)
+- [saleor/graphql/product/bulk_mutations/products.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/product/bulk_mutations/products.py)
+- [saleor/graphql/product/mutations/attributes.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/product/mutations/attributes.py)
+- [saleor/graphql/product/mutations/products.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/product/mutations/products.py)
+- [saleor/menu/utils.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/menu/utils.py)
+- [saleor/order/actions.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/order/actions.py)
+- [saleor/order/utils.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/order/utils.py)
+- [saleor/payment/utils.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/payment/utils.py)
+- [saleor/product/tasks.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/product/tasks.py)
+- [saleor/product/thumbnails.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/product/thumbnails.py)
+- [saleor/product/utils/__init__.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/product/utils/__init__.py)
+- [saleor/site/migrations/0013_assign_default_menus.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/site/migrations/0013_assign_default_menus.py) (The line changed here is `Site.objects.clear_cache` due to a persistence of the connection upon each migration)
+- [saleor/warehouse/management.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/warehouse/management.py)
+- [saleor/wishlist/models.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/wishlist/models.py)
+
+### File changes due to dynamic currency
+
+- [saleor/core/middleware.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/core/middleware.py)
+- [saleor/core/taxes.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/core/taxes.py)
+- [saleor/core/utils/__init__.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/core/utils/__init__.py)
+- [saleor/discount/models.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/discount/models.py)
+- [saleor/graphql/checkout/mutations.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/checkout/mutations.py)
+- [saleor/graphql/order/mutations/draft_orders.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/order/mutations/draft_orders.py)
+- [saleor/graphql/payment/mutations.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/payment/mutations.py)
+- [saleor/graphql/product/mutations/products.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/product/mutations/products.py)
+- [saleor/graphql/shop/types.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/graphql/shop/types.py)
+- [saleor/order/utils.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/order/utils.py)
+- [saleor/payment/models.py](https://github.com/seegno-labs/saleor/blob/develop/saleor/payment/models.py)
+
+------------------------------------
+
 ![Saleor Commerce - A GraphQL-first platform for perfectionists](https://user-images.githubusercontent.com/249912/71523206-4e45f800-28c8-11ea-84ba-345a9bfc998a.png)
 
 <div align="center">
