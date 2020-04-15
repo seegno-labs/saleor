@@ -25,18 +25,24 @@ fake = Factory.create()
 
 def create_users(domain, users):
     for user in users:
+        id = user.get('id')
+        email = user.get('email')
+        name = user.get('email')
+        roles = user.get('roles')
+        is_superuser = 'owner' in roles
+
         try:
             saleor_user = User.objects.create_user(
-                first_name=user.get('name'),
+                first_name=name,
                 last_name="",
-                email=user.get('email'),
+                email=email,
                 password="password",
                 is_active=True,
-                is_staff=user.get('isSuperuser', False),
-                is_superuser=user.get('isSuperuser', False)
+                is_staff=is_superuser,
+                is_superuser=is_superuser
             )
 
-            update_ecommerce_id(domain, user.get('id'), saleor_user.id)
+            update_ecommerce_id(domain, id, saleor_user.id)
 
         except Exception as e:
             raise e
@@ -108,6 +114,14 @@ def handle_migrate_success(result, *args, **kwargs):
 
         update_migration_state(domain, "ready")
 
+@signals.task_failure.connect
+def handle_migrate_failure(task_id, exception, traceback, einfo, *args, **kwargs):
+    task = kwargs.get('sender').name
+    domain = kwargs.get('kwargs').get('domain')
+
+    if task == 'saleor.migrate.tasks.run_migrations':
+        update_migration_state(domain, "failed")
+
 @app.task(base=DomainTask)
 def run_migrations(**kwargs):
     users = kwargs.get('users')
@@ -115,6 +129,7 @@ def run_migrations(**kwargs):
 
     setup_celery_connection(domain)
     add_saleor_schema(domain)
+    update_migration_state(domain, "preparing")
     call_command("migrate", database=domain)
 
     return {
