@@ -60,7 +60,7 @@ from ..utils import (
     validate_attribute_input_for_variant,
 )
 
-from ....domain_utils import transaction_domain_atomic
+from ....domain_utils import transaction_domain_atomic, fetch_currency
 
 class CategoryInput(graphene.InputObjectType):
     description = graphene.String(description="Category description (HTML/text).")
@@ -796,6 +796,7 @@ class ProductCreate(ModelMutation):
         # `Product` model, which is HStore field that maps attribute's PK to
         # the value's PK.
 
+        instance.currency = fetch_currency()
         attributes = cleaned_input.get("attributes")
         product_type = (
             instance.product_type if instance.pk else cleaned_input.get("product_type")
@@ -908,7 +909,7 @@ class ProductCreate(ModelMutation):
             )
             sku = cleaned_input.get("sku")
             variant = models.ProductVariant.objects.create(
-                product=instance, track_inventory=track_inventory, sku=sku
+                product=instance, track_inventory=track_inventory, sku=sku, currency=instance.currency
             )
             quantity = cleaned_input.get("quantity")
             if quantity is not None:
@@ -1116,6 +1117,7 @@ class ProductVariantCreate(ModelMutation):
     def clean_input(
         cls, info, instance: models.ProductVariant, data: dict, input_cls=None
     ):
+        instance.currency = fetch_currency()
         cleaned_input = super().clean_input(info, instance, data)
 
         if "cost_price" in cleaned_input:
