@@ -10,6 +10,7 @@ from django_prices.models import MoneyField
 from django_prices.templatetags.prices import amount
 from prices import Money, fixed_discount, percentage_discount
 
+from ..domain_utils import fetch_currency
 from ..core.permissions import DiscountPermissions
 from ..core.utils.translations import TranslationProxy
 from . import DiscountValueType, VoucherType
@@ -115,7 +116,7 @@ class Voucher(models.Model):
 
     def get_discount(self):
         if self.discount_value_type == DiscountValueType.FIXED:
-            discount_amount = Money(self.discount_value, settings.DEFAULT_CURRENCY)
+            discount_amount = Money(self.discount_value, fetch_currency())
             return partial(fixed_discount, discount=discount_amount)
         if self.discount_value_type == DiscountValueType.PERCENTAGE:
             return partial(percentage_discount, percentage=self.discount_value)
@@ -230,7 +231,7 @@ class Sale(models.Model):
 
     def get_discount(self):
         if self.type == DiscountValueType.FIXED:
-            discount_amount = Money(self.value, settings.DEFAULT_CURRENCY)
+            discount_amount = Money(self.value, fetch_currency())
             return partial(fixed_discount, discount=discount_amount)
         if self.type == DiscountValueType.PERCENTAGE:
             return partial(percentage_discount, percentage=self.value)

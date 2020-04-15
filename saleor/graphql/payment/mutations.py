@@ -2,6 +2,7 @@ import graphene
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
+from ...domain_utils import fetch_currency
 from ...core.permissions import OrderPermissions
 from ...core.taxes import zero_taxed_money
 from ...core.utils import get_client_ip
@@ -124,7 +125,7 @@ class CheckoutPaymentCreate(BaseMutation, I18nMixin):
             gateway=data["gateway"],
             payment_token=data["token"],
             total=amount,
-            currency=settings.DEFAULT_CURRENCY,
+            currency=fetch_currency(),
             email=checkout.email,
             extra_data=extra_data,
             customer_ip_address=get_client_ip(info.context),

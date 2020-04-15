@@ -2,6 +2,7 @@ import graphene
 from django.core.exceptions import ValidationError
 from graphene.types import InputObjectType
 
+from ....domain_utils import fetch_currency
 from ....account.models import User
 from ....core.exceptions import InsufficientStock
 from ....core.permissions import OrderPermissions
@@ -84,6 +85,7 @@ class DraftOrderCreate(ModelMutation, I18nMixin):
 
     @classmethod
     def clean_input(cls, info, instance, data):
+        instance.currency = fetch_currency()
         shipping_address = data.pop("shipping_address", None)
         billing_address = data.pop("billing_address", None)
         cleaned_input = super().clean_input(info, instance, data)

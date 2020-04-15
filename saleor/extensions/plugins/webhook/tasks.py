@@ -41,21 +41,16 @@ def trigger_webhooks_for_event(event_type, data, **kwargs):
 
     for webhook in webhooks:
         send_webhook_request.delay(
-            webhook.pk, webhook.target_url, webhook.secret_key, event_type, data
+            webhook.pk, webhook.target_url, webhook.secret_key, event_type, data, **kwargs
         )
 
 
 @app.task(
-    base=DomainTask,
     autoretry_for=(RequestException,),
     retry_backoff=60,
     retry_kwargs={"max_retries": 15},
 )
 def send_webhook_request(webhook_id, target_url, secret, event_type, data, **kwargs):
-    domain = kwargs.get('domain')
-
-    setup_celery_connection(domain)
-
     headers = create_webhook_headers(event_type, data, secret)
     response = requests.post(
         target_url, data=data, headers=headers, timeout=WEBHOOK_TIMEOUT
