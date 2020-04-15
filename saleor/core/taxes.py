@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from prices import Money, MoneyRange, TaxedMoney, TaxedMoneyRange
 
+from ..domain_utils import fetch_currency
 
 class TaxError(Exception):
     """Default tax error."""
@@ -17,10 +18,12 @@ def zero_money(currency: str = settings.DEFAULT_CURRENCY) -> Money:
 
     This is a function used as a model's default.
     """
+    currency = fetch_currency()
     return Money(0, currency)
 
 
 def zero_taxed_money(currency: str = settings.DEFAULT_CURRENCY) -> TaxedMoney:
+    currency = fetch_currency()
     zero = zero_money(currency)
     return TaxedMoney(net=zero, gross=zero)
 
