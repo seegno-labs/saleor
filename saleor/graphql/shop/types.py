@@ -5,6 +5,7 @@ from django_countries import countries
 from django_prices_vatlayer.models import VAT
 from phonenumbers import COUNTRY_CODE_TO_REGION_CODE
 
+from ...domain_utils import fetch_currency
 from ...account import models as account_models
 from ...core.permissions import SitePermissions, get_permissions
 from ...core.utils import get_client_ip, get_country_by_ip
@@ -199,7 +200,7 @@ class Shop(graphene.ObjectType):
 
     @staticmethod
     def resolve_default_currency(_, _info):
-        return settings.DEFAULT_CURRENCY
+        return fetch_currency()
 
     @staticmethod
     def resolve_description(_, info):
