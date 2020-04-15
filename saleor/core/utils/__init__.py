@@ -16,6 +16,8 @@ from geolite2 import geolite2
 from prices import MoneyRange
 from versatileimagefield.image_warmer import VersatileImageFieldWarmer
 
+from ...domain_utils import fetch_currency
+
 georeader = geolite2.reader()
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ def get_currency_for_country(country):
     currencies = get_territory_currencies(country.code)
     if currencies:
         return currencies[0]
-    return settings.DEFAULT_CURRENCY
+    return fetch_currency()
 
 
 def to_local_currency(price, currency):
