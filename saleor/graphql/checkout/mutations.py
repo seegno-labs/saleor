@@ -29,7 +29,7 @@ from ...core.permissions import OrderPermissions
 from ...core.taxes import TaxError
 from ...core.utils.url import validate_storefront_url
 from ...discount import models as voucher_model
-from ...domain_utils import transaction_domain_atomic
+from ...domain_utils import transaction_domain_atomic, fetch_currency
 from ...payment import PaymentError, gateway, models as payment_models
 from ...payment.interface import AddressData
 from ...payment.utils import store_customer_id
@@ -217,6 +217,7 @@ class CheckoutCreate(ModelMutation, I18nMixin):
 
     @classmethod
     def clean_input(cls, info, instance: models.Checkout, data, input_cls=None):
+        instance.currency = fetch_currency()
         cleaned_input = super().clean_input(info, instance, data)
         user = info.context.user
         country = info.context.country.code
