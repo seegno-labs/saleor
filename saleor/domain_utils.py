@@ -11,6 +11,7 @@ from threadlocals.threadlocals import get_current_request
 
 saas_manager_host = os.environ.get('SAAS_MANAGER_HOST')
 user_manager_host = os.environ.get('USER_MANAGER_HOST')
+settings_manager_host = os.environ.get('SETTINGS_MANAGER_HOST')
 services_protocol = os.environ.get('SERVICES_PROTOCOL') or 'http'
 
 def get_domain():
@@ -22,6 +23,8 @@ def get_domain():
     if "--domain" in opts:
         index = opts.index("--domain") + 1
         return opts[index]
+    if settings.DOMAIN.get("celery"):
+        return settings.DOMAIN.get("celery")
 
 def update_migration_state(domain=None, state=None):
     try:
@@ -65,6 +68,22 @@ def fetch_credentials(domain=None):
     except Exception as e:
         raise e
 
+def fetch_currency(domain=None):
+    try:
+        domain_id = domain or get_domain()
+        url = f"{services_protocol}://{settings_manager_host}/settings"
+        headers = { "X-Domain-ID": domain_id }
+        req = request.Request(url, headers=headers, data=None)
+
+        with request.urlopen(req) as response:
+            res = response.read().decode('utf-8')
+            data = json.loads(res)
+            setting = data.get('data')
+
+            return setting.get('currency')
+    except Exception as e:
+        raise e
+
 def serialize_connection(credentials):
     client = credentials.get("client")
     connection = credentials.get("connection")
@@ -76,11 +95,12 @@ def serialize_connection(credentials):
 
     return f"{client}://{user}:{password}@{host}:{port}/{database}"
 
-def setup_celery_connection(domain):
+def setup_celery_connection(domain, currency=None):
     credentials = fetch_credentials(domain)
     connection_string = serialize_connection(credentials)
     connections.databases[domain] = dj_database_url.parse(connection_string)
     settings.DOMAIN["celery"] = domain
+    settings.DOMAIN["currency"] = currency
 
 def transaction_domain_atomic(fn):
     @wraps(fn)
