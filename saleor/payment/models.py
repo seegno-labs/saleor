@@ -13,6 +13,7 @@ from ..core.taxes import zero_money
 from ..order.models import Order
 from . import ChargeStatus, CustomPaymentChoices, TransactionError, TransactionKind
 
+from ..domain_utils import fetch_currency
 
 class Payment(models.Model):
     """A model that represents a single payment.
@@ -99,7 +100,7 @@ class Payment(models.Model):
         return max(self.transactions.all(), default=None, key=attrgetter("pk"))
 
     def get_total(self):
-        return Money(self.total, self.currency or settings.DEFAULT_CURRENCY)
+        return Money(self.total, fetch_currency())
 
     def get_authorized_amount(self):
         money = zero_money()
@@ -127,14 +128,14 @@ class Payment(models.Model):
 
         # Calculate authorized amount from all succeeded auth transactions
         for txn in authorized_txns:
-            money += Money(txn.amount, self.currency or settings.DEFAULT_CURRENCY)
+            money += Money(txn.amount, fetch_currency())
 
         # If multiple partial capture is supported later though it's unlikely,
         # the authorized amount should exclude the already captured amount here
         return money
 
     def get_captured_amount(self):
-        return Money(self.captured_amount, self.currency or settings.DEFAULT_CURRENCY)
+        return Money(self.captured_amount,fetch_currency())
 
     def get_charge_amount(self):
         """Retrieve the maximum capture possible."""
@@ -220,4 +221,4 @@ class Transaction(models.Model):
         )
 
     def get_amount(self):
-        return Money(self.amount, self.currency or settings.DEFAULT_CURRENCY)
+        return Money(self.amount, fetch_currency())
