@@ -8,7 +8,7 @@ from ..core.taxes import zero_money
 from ..core.weight import zero_weight
 from ..discount.models import NotApplicable, Voucher, VoucherType
 from ..discount.utils import get_products_voucher_discount, validate_voucher_in_order
-from ..domain_utils import transaction_domain_atomic
+from ..domain_utils import transaction_domain_atomic, fetch_currency
 from ..extensions.manager import get_extensions_manager
 from ..order import OrderStatus
 from ..order.models import Order, OrderLine
@@ -296,7 +296,7 @@ def restock_fulfillment_lines(fulfillment):
 
 
 def sum_order_totals(qs):
-    zero = Money(0, currency=settings.DEFAULT_CURRENCY)
+    zero = Money(0, currency=fetch_currency())
     taxed_zero = TaxedMoney(zero, zero)
     return sum([order.total for order in qs], taxed_zero)
 
