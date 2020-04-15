@@ -12,6 +12,7 @@ from django.utils.functional import SimpleLazyObject
 from django.utils.translation import get_language
 from django_countries.fields import Country
 
+from ..domain_utils import fetch_currency
 from ..discount.utils import fetch_discounts
 from ..extensions.manager import get_extensions_manager
 from ..graphql.views import API_PATH, GraphQLView
@@ -75,7 +76,7 @@ def currency(get_response):
         if hasattr(request, "country") and request.country is not None:
             request.currency = get_currency_for_country(request.country)
         else:
-            request.currency = settings.DEFAULT_CURRENCY
+            request.currency = fetch_currency()
         return get_response(request)
 
     return _currency_middleware
